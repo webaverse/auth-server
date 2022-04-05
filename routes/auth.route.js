@@ -107,7 +107,7 @@ router.get('/mnemonic', async (req, res) => {
         const { address } = jwt.verify(jwtToken, process.env.JWT_TOKEN_SECRET);
         const dbobj = await dynamoDB.getDynamoItem(`${address}.metamask`, 'users')
         let mnemonic = dbobj.Item?.mnemonic;
-        return res.status(401).json({
+        return res.status(200).json({
             mnemonic
         });
     } catch (error) {
