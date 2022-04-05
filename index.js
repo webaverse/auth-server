@@ -12,6 +12,8 @@ app.use(express.json());
 
 app.use(require('./routes/auth.route'));
 
+app.use(express.static('./static'));
+
 app.all((req, res) => {
     res.sendStatus(404);
 });
