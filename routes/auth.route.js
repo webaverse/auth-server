@@ -101,6 +101,66 @@ router.post('/metamask-login', async (req, res) => {
     }
 });
 
+router.post('/discord-login', async (req, res) => {
+    let { discordcode, discordid } = req.body;
+    if (!discordcode || !discordid) {
+        return res.status(400).json({
+            message: 'Invalid id or code',
+        });
+    }
+    try {
+        const codeItem = await dynamoDB.getDynamoItem(`${discordid}.code`, 'users')
+        if (codeItem.Item && codeItem.Item.code.S === discordcode) {
+            await dynamoDB.ddb.deleteItem({
+                TableName: 'users',
+                Key: {
+                    email: { S: discordid + '.code' },
+                }
+            }).promise();
+
+            const tokenItem = await dynamoDB.ddb.getItem({
+                TableName: 'users',
+                Key: {
+                    email: { S: discordid + '.discordtoken' },
+                },
+            }).promise();
+
+
+            let mnemonic = (tokenItem.Item && tokenItem.Item.mnemonic) ? tokenItem.Item.mnemonic.S : null;
+
+            if (!mnemonic) {
+                mnemonic = generateMnemonic();
+            }
+
+            await dynamoDB.ddb.putItem({
+                TableName: 'users',
+                Item: {
+                    email: { S: discordid + '.discordtoken' },
+                    mnemonic: { S: mnemonic },
+                }
+            }).promise();
+            const address = await ethers.Wallet.fromMnemonic(mnemonic).getAddress();
+            const jwtToken = jwt.sign({ address }, process.env.JWT_TOKEN_SECRET, {
+                expiresIn: '1d'
+            });
+
+            return res.json({
+                jwtToken
+            });
+        } else {
+            return res.status(400).json({
+                message: 'Invalid code',
+            });
+        }
+
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({
+            message: 'Authentication failed',
+        });
+    }
+});
+
 router.get('/mnemonic', async (req, res) => {
     const jwtToken = `${req.headers.authorization}`.replace('Bearer ', '').replace('bearer ', '');
     try {
