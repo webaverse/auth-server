@@ -1,3 +1,4 @@
+// @ts-check
 require('dotenv').config()
 const express = require('express');
 const mongoose = require('mongoose');
@@ -6,6 +7,12 @@ const app = express();
 
 mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
 
+const helmet = require('helmet');
+app.use(helmet.contentSecurityPolicy({
+    directives: {
+        "frame-ancestors": ["'self'", "http://localhost:3000", "http://localhost:1234"]
+    }
+}))
 app.use(cors());
 
 app.use(express.json());
